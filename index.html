@@ -1,0 +1,19 @@
+<script src="req.js"></script>
+<script src="script.js"></script>
+<?python
+import os
+
+name = _GET("name")
+
+if(name):
+    print("My Name is {}".format(name))
+else:
+    print("<p>Enter Your Name</p>")
+    print("<form action='/'><input name='name' placeholder='Enter Name'><button>Submit</button></form>")
+?>
+
+<h1>
+<?python
+print("Hello World!")
+?>
+</h1>
