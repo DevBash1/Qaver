@@ -1,1 +1,1 @@
-from qaver import Server,Accepts
+from PyQaver import Server,Accepts
