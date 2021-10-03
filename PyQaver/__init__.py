@@ -1,1 +1,1 @@
-from qaver import Server,Accepts
+from .qaver import Server,Accepts
