@@ -24,8 +24,7 @@ server = Server()
 server.start("localhost",8080)
 ```
 [PyQaver](https://pypi.org/project/PyQaver) on default is set to only parse Python codes in __.htm__ and __.html__ files.  
-Which you can change with the **Accept** Class.
-
+Which you can change with the **Accept** Class.  
 index.py
 ```python
 from PyQaver import Server,Accepts
@@ -38,7 +37,7 @@ server.start("localhost",8080)
 ```
 This will tell **PyQaver** to parse Python Codes in __.html__ and __.js__ files.
 
-This is an example __.js__ file.
+This is an example __.js__ file.  
 script.js
 ```javascript
 console.log("Hello From JavaScript");
@@ -47,7 +46,7 @@ print("console.log('Hello From Python')")
 ?>
 ```
 You can also import modules too and access the filesystem.  
-Checkout Some cool demos here
+Checkout Some cool demos [here](https://github.com/DevBash1/PyQaver-Demos)
 
 ## Contribution
 **PyQaver** is still new and open to contribution.  
