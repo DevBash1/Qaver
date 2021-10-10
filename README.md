@@ -63,5 +63,5 @@ You can also import modules too and access the filesystem.
 Checkout Some cool demos [here](https://github.com/DevBash1/PyQaver-Demos)
 
 ## Contribution
-**PyQaver** is still new and open to contribution.  
+**PyQaver** is still new and open to contributions.  
 **Happy Coding**
