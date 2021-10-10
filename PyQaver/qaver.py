@@ -1,4 +1,5 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.cookies import SimpleCookie
 from socketserver import ThreadingMixIn
 import threading
 from urllib import parse
@@ -6,12 +7,56 @@ import os
 import subprocess
 import cgi
 import io
+import random
 
-query = ""
-POSTS = ""
-FILES = ""
+ID = 0
+GET = {}
+POST = {}
+FILES = {}
+COOKIE = {}
+SERVER = {}
 accepts = [".html",".htm"]
 main = None
+PATH = None
+
+def setCOOKIE(cookie):
+    global COOKIE
+
+    for key, morsel in cookie.items():
+        COOKIE[key] = morsel.value
+
+def setGET(string):
+    global GET
+    try:
+        pairs = string.split("&")
+        for each in pairs:
+            attr = each.split("=")[0]
+            value = each.split("=")[1]
+            GET[attr] = value
+    except:
+        return False
+
+def setPOST(string):
+    global POST
+    try:
+        pairs = string.split("&")
+        for each in pairs:
+            attr = each.split("=")[0]
+            value = each.split("=")[1]
+            POST[attr] = value
+    except:
+        return False
+
+def setFILES(string):
+    global FILES
+    pairs = string.split("&")
+    try:
+        for each in pairs:
+            attr = each.split("=")[0]
+            value = each.split("=")[1]
+            FILES[attr] = value
+    except:
+        return False
 
 def isAccepted(path):
     for ext in accepts:
@@ -21,7 +66,13 @@ def isAccepted(path):
 
 def getPath(path):
     if(path.endswith("/")):
-        return path[:-1] + "index.html"
+        file = path[:-1]
+        if(os.path.isfile(file + "index.html")):
+            return file + "index.html"
+        elif(os.path.isfile(file + "index.py")):
+            return file + "index.py"
+        else:
+            return file + "index.html"
     else:
         if(path.startswith("/")):
             return path[1:]
@@ -59,6 +110,7 @@ def is_binary(filename):
     return False
 
 def parseFile(string):
+    global PATH
     text = string
     parsed = ""
     start = 0
@@ -78,105 +130,99 @@ def parseFile(string):
                 break
             else:
                 end = footIndex
-                global query
-                code = """
-def _GET(attr):
-    query = "{}"
-    try:
-        pairs = query.split("&")
-        for each in pairs:
-            if(each.split("=")[0] == attr):
-                return each.split("=")[1]
-    except:
-        return False
-    return False
-
-""".format(query)
-                code += text[start+8:end]
+                global GET
+                global POST
+                global FILES
+                global ID
                 
-                f = open(".qaver.temp", "w")
+                code = "_GET = {}\n".format(GET)
+                code += "_POST = {}\n".format(POST)
+                code += "_FILES = {}\n".format(FILES)
+                code += "_COOKIE = {}\n".format(COOKIE)
+                code += "_SERVER = {}\n".format(SERVER)
+
+                code += text[start+8:end]
+                #print(code)
+                
+                f = open(".qaver{}.temp".format(ID), "w")
                 f.write(code)
                 f.close()
 
-                proc = subprocess.Popen(['python', '.qaver.temp',''], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                proc = subprocess.Popen(['python3', ".qaver{}.temp".format(ID),''], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 run = proc.communicate()[0].decode("utf-8")
+                #print(run)
                 if(run.startswith("Traceback")):
-                    text = text.replace(text[start:end+2],"<p style='background:yellow;border:2px solid red;color:red;padding:15px'>Qaver Error: " + run[run.find(" in ")+3:] + "</p>")
-                    printError(run[run.find(" in ")+3:])
+                    #print(run)
+                    text = customError(PATH,run)
+                    printError(text)
                 else:
+                    #print(text)
                     text = text.replace(text[start:end+2],run)
                 
                 start = 0
                 end = 0
                 continue
+    if os.path.exists(".qaver{}.temp".format(ID)):
+        os.remove(".qaver{}.temp".format(ID))
     return text
     
 def runPyFile(path):
     f = open(path, "r")
     file = f.read()
 
-    global query
-    global POSTS
+    global GET
+    global POST
     global FILES
+    global ID
 
-    code = """
-def _GET(attr):
-    query = "{}"
-    try:
-        pairs = query.split("&")
-        for each in pairs:
-            if(each.split("=")[0] == attr):
-                return each.split("=")[1]
-    except:
-        return False
-    return False
 
-""".format(query)
 
-    code += """
-def _POST(attr):
-    query = "{}"
-    try:
-        pairs = query.split("&")
-        for each in pairs:
-            if(each.split("=")[0] == attr):
-                return each.split("=")[1]
-    except:
-        return False
-    return False
-
-""".format(POSTS)
-
-    code += """
-def _FILES(attr):
-    query = "{}"
-    try:
-        pairs = query.split("&")
-        for each in pairs:
-            if(each.split("=")[0] == attr):
-                return each.split("=")[1]
-    except:
-        return False
-    return False
-
-""".format(FILES)
+    code = "_GET = {}\n".format(GET)
+    code += "_POST = {}\n".format(POST)
+    code += "_FILES = {}\n".format(FILES)
+    code += "_COOKIE = {}\n".format(COOKIE)
+    code += "_SERVER = {}\n".format(SERVER)
+    
     code += file
 
-    f = open(".qaver.temp", "w")
+    f = open(".qaver{}.temp".format(ID), "w")
     f.write(code)
     f.close()
 
-    proc = subprocess.Popen(['python', '.qaver.temp',''], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    proc = subprocess.Popen(['python3', ".qaver{}.temp".format(ID),''], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     run = proc.communicate()[0].decode("utf-8")
     if(run.startswith("Traceback")):
-        text = run[run.find(" in ")+3:]
-        printError(run[run.find(" in ")+3:])
+        text = customError(path,run)
+        printError(text)
     else:
-        text = run
+        text = customError(path,run)
+    
+    if os.path.exists(".qaver{}.temp".format(ID)):
+        os.remove(".qaver{}.temp".format(ID))
+
     return text
 
+def customError(path,error):
+    global ID
+    text = error
+    text = text.replace(".qaver{}.temp".format(ID),path)
+    lineNumber = 5
+    lineStart = text.find(" line ")
+    if(path.endswith(".py")):
+        lineNumber = 5
+
+    if(lineStart != -1):
+        lineStart += 6
+        lineEnd = text.find(" ",lineStart)
+        line = int(text[lineStart:lineEnd].replace(",","").strip())
+
+        if(line > lineNumber):
+            text = text.replace(" line {}".format(line)," line {}".format(line-lineNumber))
+            
+    return text
 
 def getFile(path):
+    global PATH
     os.chdir('.')
 
     if(path.endswith(".py")):
@@ -192,6 +238,7 @@ def getFile(path):
             f = open(path, "r")
             try:
                 if(isAccepted(path)):
+                    PATH = path
                     return parseFile(f.read())
                 else:
                      return f.read()
@@ -202,16 +249,26 @@ def getFile(path):
         return "";
 
 class GetHandler(BaseHTTPRequestHandler):
-
+    
     def do_POST(self):
-        #global main
-        #main = self
-
-        global POSTS
+        
+        global POST
         global FILES
-        FILES = ""
-        POSTS = ""
+        global ID
+        ID = random.randint(1,100000000)
+        FILES = {}
+        POST = {}
+        COOKIE = {}
 
+        SERVER["HTTP_USER_AGENT"] = self.headers.get("User-Agent")
+        SERVER["HTTP_HOST"] = self.headers.get("Host")
+        SERVER["HTTP_REFERER"] = self.headers.get("Referer")
+        SERVER['REMOTE_ADDR'] = self.client_address[0]
+        SERVER['REMOTE_PORT'] = self.client_address[1]
+        
+        cookies = SimpleCookie(self.headers.get('Cookie'))
+        setCOOKIE(cookies)
+        
         # Parse the form data posted
         form = cgi.FieldStorage(
             fp=self.rfile,
@@ -230,6 +287,7 @@ class GetHandler(BaseHTTPRequestHandler):
         )
 
         path = getPath('{}'.format(self.path))
+        PATH = path
 
         if(os.path.isfile(path)):
             self.send_response(200)
@@ -255,14 +313,9 @@ class GetHandler(BaseHTTPRequestHandler):
         self.protocol_version = ""
                
         self.end_headers()
-
-        #out.write('Client: {}\n'.format(self.client_address))
-        #out.write('User-agent: {}\n'.format(
-            #self.headers['user-agent']))
-        #out.write('Path: {}\n'.format(self.path))
-        #out.write('Form data:\n')
-
-        # Echo back information about what was posted in the form
+        
+        POSTS = ""
+        FILE = ""
         for field in form.keys():
             field_item = form[field]
             if field_item.filename:
@@ -271,10 +324,14 @@ class GetHandler(BaseHTTPRequestHandler):
                 file_len = len(file_data)
                 #print(file_data)
 
-                if(FILES == ""):
-                    FILES += field + "=.temp/" + field_item.filename
+                if(FILE == ""):
+                    FILE += field + "=.temp/" + field_item.filename
                 else:
-                    FILES += "&" + field + "=.temp/" + field_item.filename
+                    FILE += "&" + field + "=.temp/" + field_item.filename
+
+                if not os.path.exists(".temp"):
+                    os.makedirs(".temp")
+                setFILES(FILE)
 
                 #Write Files To Temp Folder
                 f = open(".temp/"+field_item.filename,"wb")
@@ -282,21 +339,14 @@ class GetHandler(BaseHTTPRequestHandler):
                 f.close()
 
                 del file_data
-                #out.write(
-                #    '\tUploaded {} as {!r} ({} bytes)\n'.format(
-                #       field, field_item.filename, file_len)
-                #)
             else:
                 # Regular form value
-                
+
                 if(POSTS == ""):
                     POSTS += field + "=" + form[field].value
                 else:
                     POSTS += "&" + field + "=" + form[field].value
-
-                #out.write('\t{}={}\n'.format(
-                #   field, form[field].value))
-        
+        setPOST(POSTS)
         if(path.endswith(".html") or path.endswith(".htm")):
             f = open(path,"rb");
             out.write(parseFile(f.read().decode("utf-8")))
@@ -316,16 +366,33 @@ class GetHandler(BaseHTTPRequestHandler):
         out.detach()
 
     def do_GET(self):
-        #global main
-        #main = self
+
+        SERVER["HTTP_USER_AGENT"] = self.headers.get("User-Agent")
+        SERVER["HTTP_HOST"] = self.headers.get("Host")
+        SERVER["HTTP_REFERER"] = self.headers.get("Referer")
+        SERVER['REMOTE_ADDR'] = self.client_address[0]
+        SERVER['REMOTE_PORT'] = self.client_address[1]
+        
+        global PATH
+        global POST
+        global FILES
+        FILES = {}
+        POST = {}
+        COOKIE = {}
+
+        global ID
+        ID = random.randint(1,100000000)
+
+        cookies = SimpleCookie(self.headers.get('Cookie'))
+        setCOOKIE(cookies)
         
         parsed_path = parse.urlparse(self.path)
         
-        global query
-        query = '{}'.format(parsed_path.query)
+        setGET(parsed_path.query)
         
         parsed_path = '{}'.format(parsed_path.path)
         path = getPath(parsed_path)
+        PATH = path
 
         if(os.path.isfile(path)):
             self.send_response(200)
@@ -361,6 +428,7 @@ class GetHandler(BaseHTTPRequestHandler):
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
+
     
 class Server:
     address = "localhost";
