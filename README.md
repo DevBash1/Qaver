@@ -23,7 +23,7 @@ from PyQaver import Server
 server = Server()
 server.start("localhost",8080)
 ```
-[PyQaver](https://pypi.org/project/PyQaver) on default is set to only parse Python codes in __.htm__ and __.html__ files.  
+[PyQaver](https://pypi.org/project/PyQaver) on default it is set to only parse Python codes in __.htm__ and __.html__ files.  
 Which you can change with the **Accept** Class.  
 index.py
 ```python
@@ -44,6 +44,20 @@ console.log("Hello From JavaScript");
 <?python
 print("console.log('Hello From Python')")
 ?>
+```
+index.html
+```html
+<html>
+<head>
+<title>PyQaver</title>
+<script src="script.js"></script>
+</head>
+<body>
+<?python
+print("<h1>Hello From PyQaver!</h1>")
+?>
+</body>
+</html>
 ```
 You can also import modules too and access the filesystem.  
 Checkout Some cool demos [here](https://github.com/DevBash1/PyQaver-Demos)
